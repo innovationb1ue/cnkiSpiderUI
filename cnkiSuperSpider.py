@@ -9,13 +9,13 @@ class example(object):
         self.headers = {'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36'}
         self.main()
 
-    def main(self, papername=input('please input papername')):
+    def main(self, papername=input('please input papername:')):
         # for auto test
         if papername == '':
-            papername = 'QHBR'
+            papername = 'GMRB'
 
         # input year
-        year = '2015'
+        year = input('Please input year:')
 
 
         urllist = []
@@ -48,12 +48,12 @@ class example(object):
         time.sleep(1)
         print(len(urllist))
         downloadcount = 0
-        for url in urllist:
+        for url in urllist[7:]:
             driver.get(url)
-            time.sleep(1)
+            time.sleep(3)
             pdfdownbtn = driver.find_element_by_id('pdfDown')
             pdfdownbtn.click()
-            time.sleep(1)
+            time.sleep(2.5)
             while len(driver.window_handles) != 1:
                 handles = driver.window_handles
                 for handle in handles:
