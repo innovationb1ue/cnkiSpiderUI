@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/cnkiSpider.iml" filepath="$PROJECT_DIR$/.idea/cnkiSpider.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/cnkiSpiderUI.iml" filepath="$PROJECT_DIR$/.idea/cnkiSpiderUI.iml" />
     </modules>
   </component>
 </project>

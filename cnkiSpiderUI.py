@@ -70,6 +70,8 @@ class SpiderUI(QWidget):
         self.DownloadCountLabel = QLabel('已下载数：', self)
         self.DownloadCountLabel.move(10, reviewsPositionY)
 
+
+
         self.DownloadCountindex = QLabel('0', self)
         self.DownloadCountindex.move(70, reviewsPositionY)
 
@@ -78,6 +80,11 @@ class SpiderUI(QWidget):
 
         self.loseCountindex = QLabel('0', self)
         self.loseCountindex.move(70, reviewsPositionY+60)
+        self.loseCountindex.move(70, 20)
+        
+        
+        
+        
 
 
         self.TotalNumLabel = QLabel('获取到的文件数:', self)

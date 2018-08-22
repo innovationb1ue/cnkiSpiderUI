@@ -3,6 +3,8 @@ from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 import re
 import time
+from requests.cookies import RequestsCookieJar
+import os
 
 class example(object):
     def __init__(self):
@@ -19,53 +21,48 @@ class example(object):
 
 
         urllist = []
+        #
+        # for i in range(1,13):
+        #     if i <=9 :
+        #         i = '0' + str(i)
+        #     else:
+        #         i = str(i)
+        #     for day in range(0,32):
+        #         date_str = year + '-' + i + '-' + str(day)
+        #         urllist += self.getArticleIDs(papername, date_str)
+        #         print('Getting:', i, '_', day)
 
-        for i in range(1,13):
-            if i <=9 :
-                i = '0' + str(i)
-            else:
-                i = str(i)
-            for day in range(0,32):
-                date_str = year + '-' + i + '-' + str(day)
-                urllist += self.getArticleIDs(papername, date_str)
-                print('Getting:', i, '_', day)
-        # urllist = self.getArticleIDs('QHBR', '2015-09-30')
+        # options = webdriver.ChromeOptions()
+        # prefs = {'download.default_directory': '/Users/JeffB1ue/Downloads/ChromeDownloads/'}
+        # options.add_experimental_option('prefs', prefs)
+        # driver = webdriver.Chrome('d:/chrome/chromedriver', chrome_options=options)
+        #
+        # driver.get('http://login.cnki.net/login/?platform=kns&ReturnURL=http://www.cnki.net/')
+        # handle1 = driver.current_window_handle
+        # username = driver.find_element_by_id('TextBoxUserName')
+        # username.send_keys('blueking02')
+        # password = driver.find_element_by_id('TextBoxPwd')
+        # password.send_keys('blueking007')
+        #
+        # btn1 = driver.find_element_by_id('Button1')
+        # btn1.click()
+        # time.sleep(2)
 
-        options = webdriver.ChromeOptions()
-        prefs = {'download.default_directory': '/Users/JeffB1ue/Downloads/ChromeDownloads/'}
-        options.add_experimental_option('prefs', prefs)
-        driver = webdriver.Chrome('./chromedriver', chrome_options=options)
+        s = requests.session()
+        data = {'username':'blueking02', 'password':'blueking007', 'keeppwd':'keepPwd', 'app':''}
+        s.post('http://wap.cnki.net/touch/usercenter/Account/Validator', data=data)
 
-        driver.get('http://login.cnki.net/login/?platform=kns&ReturnURL=http://www.cnki.net/')
-        handle1 = driver.current_window_handle
-        username = driver.find_element_by_id('TextBoxUserName')
-        username.send_keys('blueking02')
-        password = driver.find_element_by_id('TextBoxPwd')
-        password.send_keys('blueking007')
+        content = s.get('http://wap.cnki.net/touch/usercenter/Zone/Index').content.decode('utf-8')
+        print(content)
 
-        btn1 = driver.find_element_by_id('Button1')
-        btn1.click()
-        time.sleep(1)
+        content = s.get('http://kns.cnki.net/kns/download.aspx?filename=zZGlWa3MkS1hUaMFnMthmU4dkapF2Z1cmWz4UQnFGehlXNkFGZW9mZHxkeFdnYhRGOzsicwN0cMZGVWFWVQR1b=0TPnBzUFlkeBtGbpRXRXZ0Q38GRk9SM1dFM4QVcvBFS2Z0QYRTSmNWeUF0RYd1dalVcm1UVvlEeqJTaU1mW2I&tablename=CCNDCOMMIT_DAY&dflag=pdfdown').content
+
+        f = open(os.path.abspath('.')+'/1.pdf', 'wb')
+        f.write(content)
+        f.close()
+
+
         print(len(urllist))
-        downloadcount = 0
-        for url in urllist[7:]:
-            driver.get(url)
-            time.sleep(3)
-            pdfdownbtn = driver.find_element_by_id('pdfDown')
-            pdfdownbtn.click()
-            time.sleep(2.5)
-            while len(driver.window_handles) != 1:
-                handles = driver.window_handles
-                for handle in handles:
-                    if handle != handle1:
-                        handle2 = handle
-                driver.switch_to.window(handle2)
-                driver.close()
-                driver.switch_to.window(handle1)
-                pdfdownbtn.click()
-                time.sleep(1.5)
-            downloadcount+=1
-            print('已下载:', downloadcount)
 
 
 
@@ -111,7 +108,14 @@ class example(object):
 
         print(ArticleUrlList)
 
-        return ArticleUrlList
+        downloadlinklist = []
+        for url in ArticleUrlList:
+            raw = requests.get(url).content.decode('utf-8')
+            soup = bs(raw)
+            downurl = soup.find_all("a", attrs={'id':'pdfDown'})[0]['href']
+            downloadlinklist.append(downurl.replace('\n', '').replace(' ', ''))
+
+        return downloadlinklist
 
 
 
