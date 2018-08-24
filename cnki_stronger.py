@@ -148,8 +148,8 @@ class SpiderUI(QWidget):
         self.s = requests.session()
         self.login()
 
-        for checkitem in enumerate(self.namelist):
-            pos = checkitem[0]
+        for i in range(len(self.namelist)):
+            pos = i
             self.namelist[pos] = self.namelist[pos].replace('*', ' ')
             self.namelist[pos] = self.namelist[pos].replace('?', ' ')
             self.namelist[pos] = self.namelist[pos].replace('\r', ' ')
@@ -171,6 +171,7 @@ class SpiderUI(QWidget):
                 if os.path.exists(savepath + title + '.pdf'):
                     self.DownloadCount += 1
                     self.DownloadCountindex.setText(str(self.DownloadCount))
+                    self.DownloadCountindex.adjustSize()
                     continue
                 self.s = requests.session()
                 self.login()
@@ -180,11 +181,13 @@ class SpiderUI(QWidget):
                     self.DownloadCount += 1
                     self.DownloadCountindex.setText(str(self.DownloadCount))
                     self.DownloadCountindex.adjustSize()
-
                 while True:
                     try:
-                        content.decode('utf-8')
-                        content = self.downloadSingleFile(downloadlink,title)
+                        if '错误' in content.decode('utf-8') or '登录' in content.decode('utf-8'):
+                            content = self.downloadSingleFile(downloadlink,title)
+                            count += 1
+                        if '频繁' in content.decode('utf-8'):
+                            QMessageBox.about(self,'换IP')
                     except ValueError:
                         break
 
@@ -262,8 +265,6 @@ class SpiderUI(QWidget):
                     temp_final, temp_name = self.getArticleIDs(papername, date[0:4]+'-'+date[4:] + '-'+str(i))
                     final += temp_final
                     name += temp_name
-
-                self.ProcessLabel.setText('Getting:'+ str(i))
 
                 self.GetCount += len(temp_final)
                 self.TotalNum.setText(str(self.GetCount))
