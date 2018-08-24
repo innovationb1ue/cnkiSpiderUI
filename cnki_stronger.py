@@ -92,6 +92,9 @@ class SpiderUI(QWidget):
         self.ProcessLabel.move(10, reviewsPositionY+40)
         # self.ProcessLabel.show()
 
+        self.checkBtn = QPushButton('check', self)
+        self.checkBtn.setGeometry(150, 110, 60, 30)
+        self.checkBtn.clicked.connect(self.check)
     def ValidateUser(self):
         try:
             Validate_resp = requests.session()
@@ -137,66 +140,170 @@ class SpiderUI(QWidget):
         if not os.path.exists(savepath):
             os.mkdir(savepath)
 
-        self.downlist = self.YearOrMonth(papername, year)
+        self.downlist, self.namelist = self.YearOrMonth(papername, year)
 
+        print(self.downlist)
+        print(len(self.downlist))
+        print(len(self.namelist))
         self.s = requests.session()
         self.login()
 
-        count = 0
-        for item in self.downlist:
-            content = self.s.get(item).content
-            with open(savepath, 'wb') as f:
-                f.write(content)
-                self.downloadco
-            count += 1
-            if count == 200:
+        for checkitem in enumerate(self.namelist):
+            pos = checkitem[0]
+            self.namelist[pos] = self.namelist[pos].replace('*', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('?', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('\r', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('\n', ' ')
+            self.namelist[pos] = self.namelist[pos].replace(':', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('\\', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('<', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('>', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('|', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('”', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('“', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('"', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('/', ' ')
+            self.namelist[pos] = self.namelist[pos].replace('%', ' ')
+            self.namelist[pos] = self.namelist[pos].replace(' ', ' ')
+
+        for downloadlink, title in zip(self.downlist, self.namelist):
+            try:
+                if os.path.exists(savepath + title + '.pdf'):
+                    self.DownloadCount += 1
+                    self.DownloadCountindex.setText(str(self.DownloadCount))
+                    continue
                 self.s = requests.session()
                 self.login()
-                count = 0
+                content = self.s.get(downloadlink).content
+                with open(savepath + title + '.pdf', 'wb') as f:
+                    f.write(content)
+                    self.DownloadCount += 1
+                    self.DownloadCountindex.setText(str(self.DownloadCount))
+                    self.DownloadCountindex.adjustSize()
 
+                while True:
+                    try:
+                        content.decode('utf-8')
+                        content = self.downloadSingleFile(downloadlink,title)
+                    except ValueError:
+                        break
+
+            except(OSError, IOError):
+                f1 = open(os.path.abspath('.')+'/log.txt', 'a+')
+                f1.write(self.name+'\n \r\n')
+                f1.close()
+                self.loseCount += 1
+                self.loseCountindex.setText(str(self.loseCount))
+                self.loseCountindex.adjustSize()
+                continue
+    def check(self):
+        savepath = os.path.abspath('.')+'/download/'
+        for downloadlink, title in zip(self.downlist, self.namelist):
+            try:
+                if os.path.exists(savepath + title + '.pdf'):
+                    self.DownloadCount += 1
+                    self.DownloadCountindex.setText(str(self.DownloadCount))
+                    continue
+                self.s = requests.session()
+                self.login()
+                content = self.s.get(downloadlink).content
+                with open(savepath + title + '.pdf', 'wb') as f:
+                    f.write(content)
+                    self.DownloadCount += 1
+                    self.DownloadCountindex.setText(str(self.DownloadCount))
+                    self.DownloadCountindex.adjustSize()
+
+                while True:
+                    try:
+                        content.decode('utf-8')
+                        content = self.downloadSingleFile(downloadlink,title)
+
+                    except ValueError:
+                        break
+
+            except(OSError, IOError):
+                f1 = open(os.path.abspath('.')+'/log.txt', 'a+')
+                f1.write(self.name+'\n \r\n')
+                f1.close()
+                self.loseCount += 1
+                self.loseCountindex.setText(str(self.loseCount))
+                self.loseCountindex.adjustSize()
+                continue
+
+
+    def downloadSingleFile(self, url, title):
+        self.s = requests.session()
+        self.login()
+        savepath = os.path.abspath('.')+'/download/'
+        content = self.s.get(url).content
+        with open(savepath + title + '.pdf', 'wb') as f:
+            f.write(content)
+        return content
 
     def login(self):
+        self.s = requests.session()
         data = {'username': 'blueking02', 'password': 'blueking007', 'keeppwd': 'keepPwd', 'app': ''}
         self.s.post('http://wap.cnki.net/touch/usercenter/Account/Validator', data=data)
 
     def YearOrMonth(self,papername, date):
         if len(date) == 6:
             final = []
+            name = []
             for i in range(1,32):
+                temp_final, temp_name = [], []
+                # print('Getting:', i)
+                self.ProcessLabel.setText('Getting:'+date[4:]+'-' +str(i))
+                self.ProcessLabel.adjustSize()
                 if i <=9:
-                    final += self.getArticleIDs(papername, date[0:4]+'-'+date[4:]+'-0'+str(i))
+                    temp_final, temp_name = self.getArticleIDs(papername, date[0:4]+'-'+date[4:]+'-0'+str(i))
+                    final += temp_final
+                    name += temp_name
                 else:
-                    final += self.getArticleIDs(papername, date[0:4]+'-'+date[4:]+'-'+str(i))
-            return final
+                    temp_final, temp_name = self.getArticleIDs(papername, date[0:4]+'-'+date[4:] + '-'+str(i))
+                    final += temp_final
+                    name += temp_name
 
-        if len(date) ==4:
-            urllist = []
+                self.ProcessLabel.setText('Getting:'+ str(i))
+
+                self.GetCount += len(temp_final)
+                self.TotalNum.setText(str(self.GetCount))
+                self.TotalNum.adjustSize()
+            return final, name
+
+        if len(date) == 4:
+            urllist, names = [], []
             for i in range(1,13):
-                if i <=9 :
-                    i = '0' + str(i)
+                if i <= 9:
+                    urllist_temp, names_temp = self.YearOrMonth(papername, date+'0'+str(i))
+                    urllist += urllist_temp
+                    names += names_temp
                 else:
-                    i = str(i)
-                for day in range(1,32):
-                    date_str = date + '-' + i + '-' + str(day)
-                    print('Getting:', i, '_', day)
-                    urllist += self.getArticleIDs(papername, date_str)
-                    print('num:',len(urllist) )
-            return urllist
+                    urllist_temp, names_temp = self.YearOrMonth(papername, date +str(i))
+                    urllist += urllist_temp
+                    names += names_temp
+
+            return urllist, names
+
+
     def getArticleIDs(self, papername,date):
 
         PostUrl = 'http://navi.cnki.net/knavi/NPaperDetail/GetArticleDataXsltByDate'
         data = {'py':papername, 'pcode':'CCND', 'pageIndex':1, 'pageSize':200, 'date':date}
         resp = requests.post(PostUrl, data=data)
         content = resp.content.decode('utf-8')
-        pattern = 'ShareUrl(.*?)journalname'
+        pattern = 'ShareUrl(.*?)ournalname'
+
+
 
         linkInfo = re.findall(pattern, content, re.S)
-        # print(linkInfo)
-        # print(len(linkInfo))
+
+        if linkInfo == []:
+            print('空', date)
+            return [], []
+
         final = []
         for i in range(int(len(linkInfo)/6)):
             final.append(linkInfo[i*6])
-        # print(final)
         # print(len(final))
 
         filenameList, DBnameList = [], []
@@ -204,20 +311,27 @@ class SpiderUI(QWidget):
         filenamePattern = 'fileName=(.*?)\',\''
         for item in final:
             temp = re.findall(filenamePattern, item, re.S)
-            filenameList.append(temp)
-        for i in range(0,len(filenameList)):
-            filenameList[i] = filenameList[i][0]
+            filenameList.append(temp[0])
         # print(filenameList)
         # print(len(filenameList))
 
         DBnamePattern = r'DBName=(.*?)&amp'
         for item in final:
             temp = re.findall(DBnamePattern, item, re.S)
-            DBnameList.append(temp)
-        for i in range(0, len(DBnameList)):
-            DBnameList[i] = DBnameList[i][0]
+            DBnameList.append(temp[0])
+
         # print(DBnameList)
         # print(len(DBnameList))
+
+        titlePattern = "\',\'(.*?).j"
+        titles = []
+
+        for item in final:
+            temp = re.findall(titlePattern, item, re.S)
+            titles.append(temp[0].split("\',\'")[1])
+
+
+
 
         ArticleUrlList = []
         for i in range(len(filenameList)):
@@ -231,7 +345,9 @@ class SpiderUI(QWidget):
             downurl = soup.find_all("a", attrs={'id':'pdfDown'})[0]['href']
             downloadlinklist.append(downurl.replace('\n', '').replace(' ', ''))
 
-        return downloadlinklist
+
+
+        return downloadlinklist, titles
 
     def _async_raise(self, tid, exctype):
         """raises the exception, performs cleanup if needed"""
