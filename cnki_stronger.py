@@ -15,7 +15,6 @@ data = {
     'keeppwd': 'keepPwd',
     'app': ''}
 
-
 class SpiderUI(QWidget):
     def __init__(self):
         self.s = requests.session()
@@ -27,7 +26,7 @@ class SpiderUI(QWidget):
         self.stop = False
         super().__init__()
         # self.ValidateUser()
-        self.setWindowTitle('cnkiSpider v1.02')
+        self.setWindowTitle('cnkiSpider v1.10')
         self.initUI()
         self.setFixedSize(300, 300)
         self.center()
@@ -166,46 +165,85 @@ class SpiderUI(QWidget):
             self.namelist[pos] = self.namelist[pos].replace('%', ' ')
             self.namelist[pos] = self.namelist[pos].replace(' ', ' ')
 
+        # download logic
         for downloadlink, title in zip(self.downlist, self.namelist):
             try:
+                # check whether file existed
                 if os.path.exists(savepath + title + '.pdf'):
                     self.DownloadCount += 1
                     self.DownloadCountindex.setText(str(self.DownloadCount))
                     self.DownloadCountindex.adjustSize()
                     continue
-                self.s = requests.session()
-                self.login()
+
+                # if not existed, download and save
                 content = self.s.get(downloadlink).content
                 with open(savepath + title + '.pdf', 'wb') as f:
                     f.write(content)
                     self.DownloadCount += 1
                     self.DownloadCountindex.setText(str(self.DownloadCount))
                     self.DownloadCountindex.adjustSize()
-                while True:
-                    try:
-                        if '错误' in content.decode('utf-8') or '登录' in content.decode('utf-8'):
-                            content = self.downloadSingleFile(downloadlink,title)
-                            count += 1
-                        if '频繁' in content.decode('utf-8'):
-                            QMessageBox.about(self,'换IP')
-                    except ValueError:
-                        break
 
+                # check file content
+                try:
+                    count = 0
+                    while '错误' in content.decode('utf-8') or '登录' in content.decode('utf-8') or '504' in content.decode('utf-8'):
+                        count += 1
+                        self.s = requests.session()
+                        self.login()
+                        content = self.s.get(downloadlink).content
+                        with open(savepath + title + '.pdf', 'wb') as f:
+                            f.write(content)
+                        time.sleep(1)
+                        if count == 10:
+                            self.downlist.append(downloadlink)
+                            self.namelist.append(title)
+                            self.GetCount += 1
+                            self.TotalNum.setText(str(self.GetCount))
+                            self.TotalNum.adjustSize()
+                            break
+                    if '频繁' in content.decode('utf-8'):
+                        i = 0
+                        while i < 300:
+                            time.sleep(1)
+                            self.s = requests.session()
+                            self.login()
+                            content = self.s.get(downloadlink).content
+                            with open(savepath + title + '.pdf', 'wb') as f:
+                                f.write(content)
+                            if '频繁' not in content.decode('utf-8'):
+                                break
+                            i += 1
+
+                except ValueError:
+                    pass
+
+            # file failed to down load will be added to the end of the list
             except(OSError, IOError):
+                self.downlist += [downloadlink]
+                self.namelist += [title]
                 f1 = open(os.path.abspath('.')+'/log.txt', 'a+')
-                f1.write(self.name+'\n \r\n')
+                f1.write(title+'\n \r\n')
                 f1.close()
                 self.loseCount += 1
                 self.loseCountindex.setText(str(self.loseCount))
                 self.loseCountindex.adjustSize()
                 continue
     def check(self):
+        t = threading.Thread(target=self.check1)
+        t.setDaemon(True)
+        t.start()
+
+
+
+    def check1(self):
+        self.DownloadCount =0
         savepath = os.path.abspath('.')+'/download/'
         for downloadlink, title in zip(self.downlist, self.namelist):
             try:
                 if os.path.exists(savepath + title + '.pdf'):
                     self.DownloadCount += 1
                     self.DownloadCountindex.setText(str(self.DownloadCount))
+                    self.DownloadCountindex.adjustSize()
                     continue
                 self.s = requests.session()
                 self.login()
@@ -215,14 +253,41 @@ class SpiderUI(QWidget):
                     self.DownloadCount += 1
                     self.DownloadCountindex.setText(str(self.DownloadCount))
                     self.DownloadCountindex.adjustSize()
+                try:
+                    count = 0
+                    while '错误' in content.decode('utf-8') or '登录' in content.decode('utf-8'):
+                        count += 1
+                        self.s = requests.session()
+                        self.login()
+                        content = self.s.get(downloadlink).content
+                        time.sleep(1)
+                        with open(savepath + title + '.pdf', 'wb') as f:
+                            f.write(content)
+                            self.DownloadCount += 1
+                            self.DownloadCountindex.setText(str(self.DownloadCount))
+                            self.DownloadCountindex.adjustSize()
+                        if count == 10:
+                            self.downlist.append(downloadlink)
+                            self.namelist.append(title)
+                            self.GetCount += 1
+                            self.TotalNum.setText(str(self.GetCount))
+                            self.TotalNum.adjustSize()
+                            break
+                    if '频繁' in content.decode('utf-8'):
+                        i = 0
+                        while i < 300:
+                            time.sleep(1)
+                            self.s = requests.session()
+                            self.login()
+                            content = self.s.get(downloadlink).content
+                            with open(savepath + title + '.pdf', 'wb') as f:
+                                f.write(content)
+                            if '频繁' not in content.decode('utf-8'):
+                                break
+                            i += 1
 
-                while True:
-                    try:
-                        content.decode('utf-8')
-                        content = self.downloadSingleFile(downloadlink,title)
-
-                    except ValueError:
-                        break
+                except ValueError:
+                    pass
 
             except(OSError, IOError):
                 f1 = open(os.path.abspath('.')+'/log.txt', 'a+')
@@ -234,14 +299,14 @@ class SpiderUI(QWidget):
                 continue
 
 
-    def downloadSingleFile(self, url, title):
-        self.s = requests.session()
-        self.login()
-        savepath = os.path.abspath('.')+'/download/'
-        content = self.s.get(url).content
-        with open(savepath + title + '.pdf', 'wb') as f:
-            f.write(content)
-        return content
+    # def downloadSingleFile(self, url, title):
+    #     self.s = requests.session()
+    #     self.login()
+    #     savepath = os.path.abspath('.')+'/download/'
+    #     content = self.s.get(url).content
+    #     with open(savepath + title + '.pdf', 'wb') as f:
+    #         f.write(content)
+    #     return content
 
     def login(self):
         self.s = requests.session()
@@ -343,8 +408,11 @@ class SpiderUI(QWidget):
         for url in ArticleUrlList:
             raw = requests.get(url).content.decode('utf-8')
             soup = bs(raw)
-            downurl = soup.find_all("a", attrs={'id':'pdfDown'})[0]['href']
-            downloadlinklist.append(downurl.replace('\n', '').replace(' ', ''))
+            try:
+                downurl = soup.find_all("a", attrs={'id':'pdfDown'})[0]['href']
+                downloadlinklist.append(downurl.replace('\n', '').replace(' ', ''))
+            except IndexError:
+                pass
 
 
 
